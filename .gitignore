@@ -1,0 +1,16 @@
+_deps
+elf2uf2
+generated
+pico-sdk
+pioasm
+cmake*
+CMake*
+*.bin
+*.dis
+*.elf
+*.map
+*.hex
+*.uf2
+Makefile
+*.pio.h
+settings.json

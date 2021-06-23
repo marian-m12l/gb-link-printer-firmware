@@ -1,0 +1,56 @@
+/**
+ * FIXME: License
+ */
+
+.program secondary
+
+; Sample bits using an external clock, and push groups of bits into the RX FIFO.
+; - IN pin 0 is the data pin
+; - IN pin 1 is the clock pin
+; - Autopush is enabled, threshold 8
+;
+; This program samples data with each rising clock edge (like mode 0 or mode 3
+; SPI). The data is actually sampled one system clock cycle after the rising
+; edge is observed, so a clock ratio of at least input_clk < clk_sys / 6 is
+; recommended for good sampling alignment.
+
+; GB link is similar to SPI mode 3: SCK idles high (polarity=1) and data (MOSI) is sampled on the trailing (rising) edge (phase=1)
+; TODO Handle output pin
+
+    wait 0 pin 31    ; wait for clock 0
+    wait 1 pin 31    ; wait for clock pin rising edge
+    in pins, 1      ; read data pin (MOSI). Autopush fills the RX FIFO.
+
+% c-sdk {
+static inline void secondary_program_init(PIO pio, uint sm, uint offset, uint pin_sck, uint pin_mosi, uint pin_miso) {
+    pio_sm_config c = secondary_program_get_default_config(offset);
+
+    // In PINS: 0=MOSI, 31=MISO
+    sm_config_set_in_pins(&c, pin_mosi);
+    //sm_config_set_in_pins(&c, pin_sck);
+    sm_config_set_out_pins(&c, pin_miso, 1);
+    
+    // Set the pin directions: SCK and MOSI are IN, MISO is OUT
+    pio_sm_set_pindirs_with_mask(pio, sm, (1u << pin_miso), (1u << pin_sck) | (1u << pin_mosi) | (1u << pin_miso));
+    
+    pio_gpio_init(pio, pin_mosi);
+    pio_gpio_init(pio, pin_sck);
+    pio_gpio_init(pio, pin_miso);
+
+    // Shifting to left matches the customary MSB-first ordering of SPI.
+    sm_config_set_in_shift(
+        &c,
+        false, // Shift-to-right = false (i.e. shift to left)
+        true,  // Autopush enabled
+        8      // Autopush threshold = 8
+    );
+
+    // We only receive, so disable the TX FIFO to make the RX FIFO deeper.
+    // FIXME Support TX
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    // Load our configuration, and start the program from the beginning
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

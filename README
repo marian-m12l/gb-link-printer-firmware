@@ -1,0 +1,1 @@
+pico-sdk 1.1.2 + patch pico-sdk/lib/tinyusb/src/device/usbd.c

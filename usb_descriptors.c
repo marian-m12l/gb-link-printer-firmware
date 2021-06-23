@@ -194,7 +194,7 @@ char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
   "stacksmashing",                     // 1: Manufacturer
-  "USB to Game Boy Link Cable",              // 2: Product
+  "USB to GB Link Cable - Secondary",              // 2: Product
   "1",                      // 3: Serials, should use chip ID
   "TinyUSB CDC",                 // 4: CDC Interface
   "TinyUSB WebUSB"               // 5: Vendor Interface

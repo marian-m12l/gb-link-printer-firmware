@@ -1,0 +1,12 @@
+.vscode
+CMakeFiles
+elf2uf2
+generated
+pioasm
+cmake_install.cmake
+CMakeCache.txt
+CMakeDoxy*
+gbusb.*
+Makefile
+*.pio.h
+pico-sdk

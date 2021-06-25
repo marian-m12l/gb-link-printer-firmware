@@ -10,3 +10,4 @@ gbusb.*
 Makefile
 *.pio.h
 pico-sdk
+rp2040.cfg

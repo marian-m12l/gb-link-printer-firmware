@@ -17,5 +17,6 @@ typedef struct pio_secondary_inst {
 void pio_secondary_read8_blocking(const pio_secondary_inst_t *secondary, uint8_t *dst, size_t len);
 void pio_secondary_read8(const pio_secondary_inst_t *secondary, uint8_t *dst, size_t len);
 bool pio_secondary_available(const pio_secondary_inst_t *secondary);
+void pio_secondary_write8_blocking(const pio_secondary_inst_t *secondary, const uint8_t *src, size_t len);
 
 #endif

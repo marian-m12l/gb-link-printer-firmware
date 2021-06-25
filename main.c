@@ -57,7 +57,7 @@ enum  {
 
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
-#define URL  "localhost:3000"
+#define URL  "localhost:3001"
 
 const tusb_desc_webusb_url_t desc_url =
 {
@@ -92,6 +92,8 @@ void secondary_task(void);
 #define PIN_SIN 1
 #define PIN_SOUT 2
 
+const uint LED_PIN = PICO_DEFAULT_LED_PIN;
+
 int main(void)
 {
   /*Cannot run SPI master and secondary together !!!
@@ -101,6 +103,9 @@ int main(void)
   uint secondary_prog_offs = pio_add_program(secondary.pio, &secondary_program);
   secondary_program_init(secondary.pio, secondary.sm, secondary_prog_offs, PIN_SCK, PIN_SIN, PIN_SOUT);
 
+
+  gpio_init(LED_PIN);
+  gpio_set_dir(LED_PIN, GPIO_OUT);
 
   tusb_init();
 
@@ -221,7 +226,8 @@ bool tud_vendor_control_request_cb(uint8_t rhport, tusb_control_request_t const 
       // Always lit LED if connected
       if ( web_serial_connected )
       {
-        board_led_write(true);
+        //board_led_write(true);
+        gpio_put(LED_PIN, 1);
         blink_interval_ms = BLINK_ALWAYS_ON;
 
         // tud_vendor_write_str("\r\nTinyUSB WebUSB device example\r\n");
@@ -265,6 +271,8 @@ void webserial_task(void)
         unsigned char rx;
         pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
         echo_all(&rx, 1);*/
+
+        pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
       }
       // echo back to both web serial and cdc
       // echo_all(buf, count);
@@ -291,6 +299,8 @@ void cdc_task(void)
         unsigned char rx;
         pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
         echo_all(&rx, 1);*/
+
+        pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
       }
       // echo back to both web serial and cdc
       // echo_all(buf, count);
@@ -336,7 +346,8 @@ void led_blinking_task(void)
   if ( board_millis() - start_ms < blink_interval_ms) return; // not enough time
   start_ms += blink_interval_ms;
 
-  board_led_write(led_state);
+  //board_led_write(led_state);
+  gpio_put(LED_PIN, led_state);
   led_state = 1 - led_state; // toggle
 }
 

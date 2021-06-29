@@ -1,1 +1,8 @@
-pico-sdk 1.1.2 + patch pico-sdk/lib/tinyusb/src/device/usbd.c
+Use pico-sdk 1.1.2
+
+Manually apply patch to pico-sdk/lib/tinyusb/src/device/usbd.c
+
+Comment or uncomment this line in CMakeLists.txt to switch between primary and secondary modes:
+```
+add_compile_definitions(SECONDARY_MODE)
+```

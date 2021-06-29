@@ -6,6 +6,8 @@ project(gbusb)
  
 pico_sdk_init()
 
+add_compile_definitions(SECONDARY_MODE)
+
 add_executable(gbusb)
 
 pico_generate_pio_header(gbusb ${CMAKE_CURRENT_LIST_DIR}/pio/spi.pio)

@@ -34,8 +34,13 @@
 #include <string.h>
 #include "tusb.h"
 #include "hardware/pio.h"
-//#include "pio/pio_spi.h"
-#include "pio/pio_secondary.h"
+
+
+#ifdef SECONDARY_MODE
+  #include "pio/pio_secondary.h"
+#else
+  #include "pio/pio_spi.h"
+#endif
 const uint SI_PIN = 3;
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -48,7 +53,11 @@ const uint SI_PIN = 3;
  */
 enum  {
   BLINK_NOT_MOUNTED = 250,
+#ifdef SECONDARY_MODE
+  BLINK_MOUNTED     = 500,
+#else
   BLINK_MOUNTED     = 1000,
+#endif
   BLINK_SUSPENDED   = 2500,
 
   BLINK_ALWAYS_ON   = UINT32_MAX,
@@ -57,7 +66,11 @@ enum  {
 
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
+#ifdef SECONDARY_MODE
 #define URL  "localhost:3001"
+#else
+#define URL  "localhost:3000"
+#endif
 
 const tusb_desc_webusb_url_t desc_url =
 {
@@ -73,19 +86,24 @@ static bool web_serial_connected = false;
 void led_blinking_task(void);
 void cdc_task(void);
 void webserial_task(void);
+#ifdef SECONDARY_MODE
 void secondary_task(void);
+#endif
 
 /*------------- MAIN -------------*/
 
-  /*pio_spi_inst_t spi = {
-          .pio = pio1,
-          .sm = 0
-  };*/
-
+#ifdef SECONDARY_MODE
   pio_secondary_inst_t secondary = {
           .pio = pio1,
           .sm = 0
   };
+#else
+  pio_spi_inst_t spi = {
+          .pio = pio1,
+          .sm = 0
+  };
+#endif
+
 
 
 #define PIN_SCK 0
@@ -96,12 +114,14 @@ const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 
 int main(void)
 {
-  /*Cannot run SPI master and secondary together !!!
-  uint cpha1_prog_offs = pio_add_program(spi.pio, &spi_cpha1_program);
-  pio_spi_init(spi.pio, spi.sm, cpha1_prog_offs, 8, 4058.838, 1, 1, PIN_SCK, PIN_SOUT, PIN_SIN);*/
+  #ifdef SECONDARY_MODE
+    uint secondary_prog_offs = pio_add_program(secondary.pio, &secondary_program);
+    secondary_program_init(secondary.pio, secondary.sm, secondary_prog_offs, PIN_SCK, PIN_SIN, PIN_SOUT);
+  #else
+    uint cpha1_prog_offs = pio_add_program(spi.pio, &spi_cpha1_program);
+    pio_spi_init(spi.pio, spi.sm, cpha1_prog_offs, 8, 4058.838, 1, 1, PIN_SCK, PIN_SOUT, PIN_SIN);
+  #endif
 
-  uint secondary_prog_offs = pio_add_program(secondary.pio, &secondary_program);
-  secondary_program_init(secondary.pio, secondary.sm, secondary_prog_offs, PIN_SCK, PIN_SIN, PIN_SOUT);
 
 
   gpio_init(LED_PIN);
@@ -115,7 +135,9 @@ int main(void)
     cdc_task();
     webserial_task();
     led_blinking_task();
-    secondary_task();                                                                                                                           
+    #ifdef SECONDARY_MODE
+      secondary_task();                                                                                                                           
+    #endif
   }
 
   return 0;
@@ -267,12 +289,15 @@ void webserial_task(void)
       uint32_t count = tud_vendor_read(buf, sizeof(buf));
       if(count) {
         // pprintf("Sending: %02x", buf[0]);
-        /* TODO Handle clock-driven output
-        unsigned char rx;
-        pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
-        echo_all(&rx, 1);*/
 
-        pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
+        #ifdef SECONDARY_MODE
+          pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
+        #else
+          unsigned char rx;
+          pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
+          echo_all(&rx, 1);
+        #endif
+
       }
       // echo back to both web serial and cdc
       // echo_all(buf, count);
@@ -295,12 +320,14 @@ void cdc_task(void)
       uint8_t buf[1];
       uint32_t count = tud_vendor_read(buf, sizeof(buf));
       if(count) {
-        /* TODO Handle clock-driven output
-        unsigned char rx;
-        pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
-        echo_all(&rx, 1);*/
 
-        pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
+        #ifdef SECONDARY_MODE
+          pio_secondary_write8_blocking(&secondary, buf, count); // Stores in outgoing FIFO to be sent whenever the primary device issues clock ticks
+        #else
+          unsigned char rx;
+          pio_spi_write8_read8_blocking(&spi, buf, &rx, 1);
+          echo_all(&rx, 1);
+        #endif
       }
       // echo back to both web serial and cdc
       // echo_all(buf, count);
@@ -351,17 +378,20 @@ void led_blinking_task(void)
   led_state = 1 - led_state; // toggle
 }
 
-void secondary_task(void)
-{
-  // Is data available on PIO ?
-  if (pio_secondary_available(&secondary)) {
-    // Read byte
-    //uint8_t rx = pio_secondary_read8(&secondary); // TODO Use buffer as argument instead of return value ???
-    uint8_t rx;
-    pio_secondary_read8(&secondary, &rx, 1);
-    //pio_secondary_read8_blocking(&secondary, &rx, 1);
 
-    // Send byte to both web serial and cdc
-    echo_all(&rx, 1);
+#ifdef SECONDARY_MODE
+  void secondary_task(void)
+  {
+    // Is data available on PIO ?
+    if (pio_secondary_available(&secondary)) {
+      // Read byte
+      //uint8_t rx = pio_secondary_read8(&secondary); // TODO Use buffer as argument instead of return value ???
+      uint8_t rx;
+      pio_secondary_read8(&secondary, &rx, 1);
+      //pio_secondary_read8_blocking(&secondary, &rx, 1);
+  
+      // Send byte to both web serial and cdc
+      echo_all(&rx, 1);
+    }
   }
-}
+#endif

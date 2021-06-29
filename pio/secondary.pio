@@ -17,31 +17,51 @@
 ; GB link is similar to SPI mode 3: SCK idles high (polarity=1) and data (MOSI) is sampled on the trailing (rising) edge (phase=1)
 ; TODO Handle output pin
 
+    wait 1 pin 31               ; wait for clock 1
 idle:
     wait 0 pin 31               ; wait for clock 0
-    set x, 8                    ; number of bits to transfer
     jmp !osre fifo_output       ; write data from fifo / output shift register, if not empty
     jmp zero_output             ; otherwise write zeros
-
-zero_output_loop:
-    wait 0 pin 31               ; wait for clock 0
 zero_output:
     mov pins, null              ; write 0 to MISO pin right after the falling clock edge
+    jmp input
+fifo_output:
+    out pins, 1                 ; write bit from FIFO/OSR to MISO pin right after the falling clock edge
+input:
     wait 1 pin 31               ; wait for clock pin rising edge
     in pins, 1                  ; read data pin (MOSI). Autopush fills the RX FIFO.
-    jmp x-- zero_output_loop    ; keep going for all 8 bits
     ;irq nowait 0                ; TODO Raise IRQ flag for the firmware to handle incoming byte ???
     jmp idle
 
-fifo_output_loop:
-    wait 0 pin 31               ; wait for clock 0
-fifo_output:
-    out pins, 1                 ; write bit from FIFO/OSR to MISO pin right after the falling clock edge
-    wait 1 pin 31               ; wait for clock pin rising edge
-    in pins, 1                  ; read data pin (MOSI). Autopush fills the RX FIFO.
-    jmp x-- fifo_output_loop    ; keep going for all 8 bits
-    ;irq nowait 0                ; TODO Raise IRQ flag for the firmware to handle incoming byte ???
-    jmp idle
+
+
+
+;    wait 1 pin 31               ; wait for clock 1
+;idle:
+;    wait 0 pin 31               ; wait for clock 0
+;    set x, 8                    ; number of bits to transfer
+;    jmp !osre fifo_output       ; write data from fifo / output shift register, if not empty
+;    jmp zero_output             ; otherwise write zeros
+;
+;zero_output_loop:
+;    wait 0 pin 31               ; wait for clock 0
+;zero_output:
+;    mov pins, null              ; write 0 to MISO pin right after the falling clock edge
+;    wait 1 pin 31               ; wait for clock pin rising edge
+;    in pins, 1                  ; read data pin (MOSI). Autopush fills the RX FIFO.
+;    jmp x-- zero_output_loop    ; keep going for all 8 bits
+;    ;irq nowait 0                ; TODO Raise IRQ flag for the firmware to handle incoming byte ???
+;    jmp idle
+;
+;fifo_output_loop:
+;    wait 0 pin 31               ; wait for clock 0
+;fifo_output:
+;    out pins, 1                 ; write bit from FIFO/OSR to MISO pin right after the falling clock edge
+;    wait 1 pin 31               ; wait for clock pin rising edge
+;    in pins, 1                  ; read data pin (MOSI). Autopush fills the RX FIFO.
+;    jmp x-- fifo_output_loop    ; keep going for all 8 bits
+;    ;irq nowait 0                ; TODO Raise IRQ flag for the firmware to handle incoming byte ???
+;    jmp idle
 
 
 

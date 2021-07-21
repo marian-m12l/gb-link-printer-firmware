@@ -73,7 +73,7 @@ input:
 static inline void secondary_program_init(PIO pio, uint sm, uint offset, uint pin_sck, uint pin_mosi, uint pin_miso) {
     pio_sm_config c = secondary_program_get_default_config(offset);
 
-    // In PINS: 0=MOSI, 31=MISO
+    // In PINS: 0=MOSI, 31=CLK
     sm_config_set_in_pins(&c, pin_mosi);
     //sm_config_set_in_pins(&c, pin_sck);
     sm_config_set_out_pins(&c, pin_miso, 1);

@@ -2,29 +2,22 @@ cmake_minimum_required(VERSION 3.13)
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
 include(pico_sdk_import.cmake)
-project(gbusb)
+project(gbprinter)
  
 pico_sdk_init()
 
-add_compile_definitions(SECONDARY_MODE)
+add_executable(gbprinter)
 
-add_executable(gbusb)
+pico_generate_pio_header(gbprinter ${CMAKE_CURRENT_LIST_DIR}/pio/secondary.pio)
 
-pico_generate_pio_header(gbusb ${CMAKE_CURRENT_LIST_DIR}/pio/spi.pio)
-pico_generate_pio_header(gbusb ${CMAKE_CURRENT_LIST_DIR}/pio/secondary.pio)
+target_include_directories(gbprinter PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
-target_include_directories(gbusb PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-
-target_sources(gbusb PRIVATE
+target_sources(gbprinter PRIVATE
         main.c
-
         usb_descriptors.c
-
-        # PIO components
-        pio/pio_spi.c
         pio/pio_secondary.c
         )
         
-target_link_libraries(gbusb PRIVATE pico_stdlib hardware_pio tinyusb_device tinyusb_board)
-pico_add_extra_outputs(gbusb)
+target_link_libraries(gbprinter PRIVATE pico_stdlib hardware_pio tinyusb_device tinyusb_board)
+pico_add_extra_outputs(gbprinter)
 

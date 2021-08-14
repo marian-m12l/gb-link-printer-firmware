@@ -333,6 +333,7 @@ uint8_t printParams[4];
 uint8_t next = 0x00;
 uint8_t printerStatus = 0x00;
 bool dataLatch = false;
+uint32_t imageDelimiter = 0xcafe4011;
 
 void secondary_task(void)
 {
@@ -405,7 +406,6 @@ void secondary_task(void)
       if (commandCode == 0x02) {
         // Print command is complete: latch data to be sent over usb
         dataLatch = true;
-        // TODO Also send print params?
       } else if (commandCode == 0x04) {
         dataOffset += dataCounter;
       }
@@ -442,12 +442,17 @@ void upload_task(void)
         dataCounter += chunk_size;
       }
     } else {
-      // TODO Also send print params?
-      // Reset printer state
-      dataOffset = 0;
-      printerStatus = 0x00;
-      //memset(data, 0, 640*9);
-      dataLatch = false;
+      // Also send printer params and image delimiter
+      uint32_t available = tud_vendor_write_available();
+      if (available >= 8) {
+        echo_all(printParams, 4);
+        echo_all(&imageDelimiter, 4);
+        // Reset printer state
+        dataOffset = 0;
+        printerStatus = 0x00;
+        //memset(data, 0, 640*9);
+        dataLatch = false;
+      }
     }
   }
 }

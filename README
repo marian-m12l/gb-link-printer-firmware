@@ -2,3 +2,4 @@ Use pico-sdk 1.1.2
 
 Manually apply patch to pico-sdk/lib/tinyusb/src/device/usbd.c
 
+Newer version sends print parameters over serial and requires an up-to-date python script to decode images.
